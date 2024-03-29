@@ -13,10 +13,10 @@
         - id
         - title
         - content
-        - author id
+        - author_id
         - createdAt
         - updatedAt
-        - publishAt
+        - published
     - user
         - id
         - name
@@ -28,7 +28,8 @@
     - user profile
         - id
         - bio
-        - date
+        - createdAt
+        - updatedAt
         - user_id
 
                         # Technology Stack...
