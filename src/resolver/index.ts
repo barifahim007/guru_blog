@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { IUser } from "../shared/interface";
 import config from "../config";
 import { json } from "stream/consumers";
+import { jwtHelpers } from "../utils/jwtHelper";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,17 @@ export const resolvers = {
   },
   Mutation: {
     singup: async (parent: any, args: IUser, context: any) => {
+      const isExsit = await prisma.user.findFirst({
+        where: { email: args.email },
+      });
+
+      if (isExsit) {
+        return {
+          userError: "user already registerd...",
+          token: null,
+        };
+      }
+
       // bcrypt user
       const hashpasword = await bcrypt.hash(args.password, 12);
       // create and save user
@@ -25,17 +37,26 @@ export const resolvers = {
           password: hashpasword,
         },
       });
+
+      if (args.bio) {
+        await prisma.profile.create({
+          data: {
+            bio: args.bio,
+            userId: newUser.id,
+          },
+        });
+      }
+
       // jwt
-      const token = jwt.sign({ userId: newUser.id }, config.secret as string, {
-        expiresIn: config.expiresIn,
-      });
+      const token = await jwtHelpers({ userId: newUser.id });
+
       return {
         token,
       };
     },
 
     // user SingIn
-    singin: async (parent: any, args: any, context: any) => {
+    singin: async (parent: any, args: IUser, context: any) => {
       const user = await prisma.user.findFirst({
         where: {
           email: args.email,
@@ -56,13 +77,7 @@ export const resolvers = {
         };
       }
 
-      const token = await jwt.sign(
-        { user: user.id },
-        config.loginsecret as string,
-        {
-          expiresIn: config.logExpire,
-        }
-      );
+      const token = await jwtHelpers({ userId: user.id });
       return {
         userError: null,
         token,
